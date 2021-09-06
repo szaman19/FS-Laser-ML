@@ -78,7 +78,7 @@ Complex I_UNIT(0.,1.);
           z_r=n_0*pi*w_min*w_min/lambda,// Rayleigh range for smallest beam
           zInitial = 1.0e-100,//Initial distance from the laser focus to the start of the beam in m  if beam is collimated tiny number
           radCurve = pow(z_r,2.0)/zInitial + zInitial,// initial radius of curvature of the beam in m
-	  zdistance =2.e-2,// m
+	        zdistance =2.e-2,// m
           g=1.8962,//2.0267, critical power factor gaussian:1.8962 SG;2.0267
           P_c=g*(lambda*lambda)/(4.*pi*n_0*n_2), //critical power
           P=5.*P_c,//power in Watts
@@ -92,7 +92,7 @@ Complex I_UNIT(0.,1.);
     
     //this is the parameter for the order of the OAM mode 
     int nLag = 0;// radial index
-    int  aLag = 0;//azimuthal index (number of charges)
+    int aLag = 0;//azimuthal index (number of charges)
    
    
     
@@ -120,7 +120,7 @@ void fileout(char *, double, double **, int , int ); //File output function
 
 
    //int nx=2048,ny=2048;   // powers of 2 for FFT
-  int nx=1024,ny=1024; 
+  int nx=256,ny=256; 
 
   ip[0]=0; //first time use
 
@@ -128,9 +128,9 @@ void fileout(char *, double, double **, int , int ); //File output function
          dist, dx= 1.e-6, dy= 1.e-6;//spatial resolution in m
 
 
-  int fsav=20; // file save number
+  int fsav=200; // file save number
   double back_step=zdistance/(double)fsav;//file save zdistance from the last z value
-  char f_namei[20];
+  char f_namei[200];
  // int n_bs=(int)(zdistance/back_step);
 
   dist=0.;
@@ -234,16 +234,13 @@ void fileout(char *, double, double **, int , int ); //File output function
   l2=0;//z-store step index
   l3=fsav;
 
-  for (l=0;l<nz ;l++ )
-  {
+  for (l=0;l<nz ;l++ ){
+    dist+=dz;
+    z[l]=dist;
+    printf("z=%g cm\n",dist*1.e2);
 
-
-   dist+=dz;
-   z[l]=dist;
-   printf("z=%g cm\n",dist*1.e2);
-
-   to_real2d(nx,ny,u,ufft); //preparation for FFT 
-   //Nonlinear first half-step:simple multiplication in temporal domain
+    to_real2d(nx,ny,u,ufft); //preparation for FFT 
+    //Nonlinear first half-step:simple multiplication in temporal domain
 
     for (j=0;j<nx;j++) {
        for (k=0;k<ny;k++) {
@@ -254,8 +251,8 @@ void fileout(char *, double, double **, int , int ); //File output function
      }
    
    
-   // Diffraction: convolution calculation using 2D FFT
-  //  to_real2d(nx,ny,u,ufft); //preparation for FFT
+    // Diffraction: convolution calculation using 2D FFT
+    //  to_real2d(nx,ny,u,ufft); //preparation for FFT
     cdft2d(nx, 2*ny, 1, ufft, t, ip, w); // FFT
 
     to_comp2d(nx,ny,U,ufft);
@@ -266,39 +263,38 @@ void fileout(char *, double, double **, int , int ); //File output function
           U[j][k]=U[j][k]*exp(-I_UNIT*(pi*lambda)*(f_x[j]*f_x[j]+f_y[k]*f_y[k])*dz);
         }
      }
-     to_real2d(nx,ny,U,ufft);
+    to_real2d(nx,ny,U,ufft);
 
-     cdft2d(nx, 2*ny, -1, ufft, t, ip, w);  // inverse FFT
+    cdft2d(nx, 2*ny, -1, ufft, t, ip, w);  // inverse FFT
 
-     to_comp2d(nx,ny,u,ufft);
+    to_comp2d(nx,ny,u,ufft);
 
     for (j=0;j<nx;j++) {
-       for (k=0;k<ny;k++) {
+      for (k=0;k<ny;k++) {
           u[j][k]=u[j][k]/(double)(nx*ny); //normalizatione
           I[j][k]=abs(u[j][k])*abs(u[j][k]);
-       }
-   }
+      }
+    }
 
    //Nonlinear second half-step:simple multiplication in temporal domain
-   for (j=0;j<nx;j++) {
-       for (k=0;k<ny;k++) {
-         u[j][k]= exp(I_UNIT*k0*n_2*I[j][k]*dz/2.)*u[j][k];
-         I[j][k]=abs(u[j][k])*abs(u[j][k]);
-
-        }
-     }
+    for (j=0;j<nx;j++) {
+      for (k=0;k<ny;k++) {
+        u[j][k]= exp(I_UNIT*k0*n_2*I[j][k]*dz/2.)*u[j][k];
+        I[j][k]=abs(u[j][k])*abs(u[j][k]);
+      }
+    }
 
     //finding maximum intensity
 
-     Imax=0.; //initialize
-     for (p=0;p<nx;p++) {
-        for (q=0;q<ny;q++) {
+    Imax=0.; //initialize
+    for (p=0;p<nx;p++) {
+      for (q=0;q<ny;q++) {
             Imax=max(Imax,I[p][q]);
-        }
-     }
-     I_max[l2]=Imax;  //maximum intensity
-     l2=l2+1;//step forward
-     printf("maximum intensity is =%g W/m^2\n",Imax);
+      }
+    }
+    I_max[l2]=Imax;  //maximum intensity
+    l2=l2+1;//step forward
+    printf("maximum intensity is =%g W/m^2\n",Imax);
 
     if (Imax>IExit) break; // if it collapses, exit from the loop
 
@@ -312,7 +308,7 @@ void fileout(char *, double, double **, int , int ); //File output function
         printf("%i more files will be saved\n\n",l3); }
 
    //Now the step adjust
-     dz=1./((1./zstp0)+ zpar*(sqrt(Imax/Imax1)-1.));
+    dz=1./((1./zstp0)+ zpar*(sqrt(Imax/Imax1)-1.));
     if ((dist+dz-zdistance)*(dist+dz-0.)>0.){
         dz=(zdistance-dist); //if overshoot, decrease
         l=nz-1; //then, the next step is the last step
